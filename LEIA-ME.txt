@@ -1,0 +1,46 @@
+CATÁLOGO DE TÊNIS — como usar
+
+1. Abra o arquivo index.html no navegador (duplo clique).
+
+2. Adicionar fotos
+   Coloque cada foto na pasta da categoria, com o NÚMERO do tênis como nome:
+     fotos/masculino/01.jpg   (masculino: 1 a 12)
+     fotos/feminino/101.png   (feminino: 101 a 112)
+     fotos/unissex/203.webp   (unissex: 201 a 208)
+     fotos/infantil/302.jpg   (infantil: 301 a 308)
+   Os números não se repetem entre categorias. Cada categoria começa no
+   número "inicio" definido no index.html e comporta até 100 tênis.
+   Aceita .jpg, .jpeg, .png e .webp. Fotos quadradas ficam melhores.
+   Dica: deixe cada foto com menos de 200 KB para o site abrir rápido.
+   Atualize a página e a foto aparece no lugar do número.
+
+3. Mudar o nome da loja e a quantidade de tênis
+   Abra o index.html em um editor de texto (Bloco de Notas serve) e procure
+   por "CONFIGURAÇÃO". Lá você troca:
+     LOJA        -> nome escrito ao lado da logo (deixe "" para só a logo)
+     inicio      -> primeiro número da categoria
+     quantidade  -> quantos tênis existem em cada categoria
+     numeracao   -> numeração que aparece ao ampliar a foto (ex.: "35-41")
+     NUMERACAO_DO_TENIS -> numeração diferente para um tênis específico
+                           (use o número do tênis, ex.: "103": "35-37")
+     TITULO / ESTILO_TITULO -> texto e estilo do título grande
+                           ("original", "moderno", "minimalista" ou "caligrafico")
+     MOSTRAR_SEM_FOTO -> true mostra o número mesmo sem foto;
+                         false esconde os tênis que ainda não têm foto
+
+4. Filtro de marcas
+   Dentro da pasta da categoria, crie uma subpasta para cada marca (nome em
+   minúsculas, espaço vira "-") e coloque as fotos nela, com o número do tênis:
+     fotos/feminino/nike/101.jpg
+     fotos/masculino/new-balance/03.jpg
+   Depois, no index.html, na lista MARCAS (bloco CONFIGURAÇÃO), escreva o nome
+   de cada marca: const MARCAS = ["Nike", "Adidas", "New Balance"];
+   O filtro aparece sozinho, só com as marcas que têm foto. Fotos soltas na
+   pasta da categoria continuam funcionando e aparecem como "Sem marca".
+
+5. Trocar a logo
+   Substitua o arquivo logo.png (fundo transparente) mantendo o mesmo nome.
+
+6. Colocar no ar
+   Envie a pasta inteira (index.html + logo.png + pasta fotos) para uma hospedagem,
+   como Netlify Drop, GitHub Pages ou a sua hospedagem atual.

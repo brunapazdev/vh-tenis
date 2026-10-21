@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Catálogo de Tênis</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Manrope:wght@500;600;700;800&family=Pinyon+Script&display=swap">
+<style>
+/* Layout: barra fixa com busca por número e categorias; uma seção por categoria; grade de fotos quadradas com o número grande abaixo de cada tênis. */
+:root{
+  color-scheme:light;
+  --bg:#F6F9FC; --surface:#FFFFFF; --tile:#E8F0F8; --ink:#1E2125; --muted:#4F5A64; --line:#DAE3EC;
+  --accent:#8CCBF7; --accent-soft:#EAF5FD; --accent-ink:#1F7BBF; --on-accent:#1B2430;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 15px/1.5 var(--f-body);padding-block:0 56px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.gut{width:100%;max-width:1240px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+button{font:inherit}
+:focus-visible{outline:3px solid var(--accent-ink);outline-offset:3px}
+
+/* Barra fixa */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar-top{display:contents}
+.bar .gut{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"logo search" "tabs tabs" "marcas marcas";column-gap:12px;align-items:center;padding-top:8px}
+.brand{grid-area:logo;justify-self:start}
+.search{grid-area:search}
+.tabs{grid-area:tabs;min-width:0}
+.marcas{grid-area:marcas;min-width:0}
+/* Em telas largas a logo fica ao lado dos botões */
+@media (min-width:760px){
+  .bar .gut{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"logo tabs search" "logo marcas marcas";column-gap:22px;padding-top:6px}
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;color:inherit;text-decoration:none}
+.brand img{height:56px;width:auto;display:block}
+.brand span{font:800 22px/1 var(--f-display);text-transform:uppercase;letter-spacing:.05em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand span:empty{display:none}
+.search input{width:min(190px,46vw);height:40px;padding:0 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font:500 16px var(--f-body)}
+.search input::placeholder{color:var(--muted)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-block:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;display:inline-flex;align-items:baseline;gap:7px;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.tab:hover{border-color:var(--accent)}
+.tab .ct{font-size:12px;font-weight:500;opacity:.65;font-variant-numeric:tabular-nums}
+.tab[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.tab[aria-pressed="true"] .ct{opacity:.85}
+
+.marcas{display:flex;align-items:center;gap:6px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+.marcas::-webkit-scrollbar{display:none}
+.mlabel{flex:none;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.chip{flex:none;display:inline-flex;align-items:baseline;gap:6px;padding:5px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:border-color .15s}
+.chip:hover{border-color:var(--accent)}
+.chip .ct{font-size:11px;font-weight:500;opacity:.6;font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+
+/* Abertura */
+.hero{display:grid;gap:22px;padding-top:44px;padding-bottom:8px}
+.hero.sem-titulo{padding-top:28px;padding-bottom:0}
+.hero h1{margin:0;text-wrap:balance;color:var(--ink)}
+/* Estilos do título (escolha em ESTILO_TITULO, no bloco CONFIGURAÇÃO) */
+.hero h1[data-estilo="original"]{font:900 clamp(3rem,13vw,7rem)/.88 "Big Shoulders Display","Arial Narrow",Impact,sans-serif;text-transform:uppercase}
+.hero h1[data-estilo="moderno"]{font:800 clamp(2.1rem,8vw,4.2rem)/1.05 var(--f-body);text-transform:uppercase;letter-spacing:.07em}
+.hero h1[data-estilo="minimalista"]{font:800 clamp(1.1rem,3.6vw,1.5rem)/1.3 var(--f-body);text-transform:uppercase;letter-spacing:.4em}
+.hero h1[data-estilo="caligrafico"]{font:400 clamp(3.4rem,13vw,6.6rem)/1 "Pinyon Script","Snell Roundhand","Apple Chancery",cursive;letter-spacing:0}
+.hero p{margin:0;max-width:34ch;color:var(--muted);font-size:17px;font-weight:500}
+.hero p::before{content:"";display:block;width:56px;height:2px;background:var(--accent);margin-bottom:14px}
+@media (min-width:760px){.hero{grid-template-columns:1fr minmax(0,300px);align-items:end}}
+
+/* Seções */
+.secao{margin-top:40px}
+.secao-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--ink)}
+.secao-head h2{margin:0;font:800 clamp(1.9rem,6vw,2.8rem)/1 var(--f-display);text-transform:uppercase;letter-spacing:.02em}
+.count{color:var(--muted);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:22px 12px;margin-top:18px}
+@media (min-width:720px){.grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:30px 18px}}
+
+/* Cartão */
+.card{appearance:none;border:0;background:none;padding:0;margin:0;text-align:left;color:inherit;cursor:pointer;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tile{position:relative;aspect-ratio:1/1;max-width:100%;background:linear-gradient(160deg,var(--accent-soft),var(--tile));border:1px solid var(--line);border-radius:14px;overflow:hidden;display:grid;place-items:center;transition:box-shadow .25s,transform .25s,border-color .25s}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s ease}
+.ph{display:grid;justify-items:center;gap:8px;padding:12px;color:var(--muted);text-align:center}
+.ph .shoe{width:54%;height:auto;opacity:.55}
+.ph small{font:500 10.5px/1.3 var(--f-mono);word-break:break-all;opacity:.85}
+.meta{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.id{display:inline-flex;align-items:baseline;gap:5px}
+.no{font-size:13px;font-weight:800;color:var(--muted);letter-spacing:.06em}
+.n{font:800 40px/1 var(--f-display);font-variant-numeric:tabular-nums;transition:color .2s}
+.hint{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+@media (hover:hover){
+  .card:hover .tile img{transform:scale(1.04)}
+  .card:hover .n{color:var(--accent-ink)}
+  .card:hover .tile{border-color:var(--accent);box-shadow:0 12px 28px -14px rgba(11,114,194,.45);transform:translateY(-3px)}
+}
+
+.vazio{padding-block:48px;color:var(--muted);font-size:16px}
+
+/* Foto ampliada */
+.zoom{position:fixed;inset:0;z-index:50;background:rgba(16,35,58,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:grid;place-items:center;
+  padding-top:max(16px,env(safe-area-inset-top,0px));padding-bottom:max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.zbox{position:relative;width:min(520px,100%);max-height:100%;background:var(--surface);border-radius:18px;overflow:auto;box-shadow:0 30px 60px -20px rgba(16,35,58,.5)}
+.zmedia{aspect-ratio:1/1;max-width:100%;background:linear-gradient(160deg,var(--accent-soft),var(--tile));display:grid;place-items:center}
+.zmedia img{width:100%;height:100%;object-fit:contain;display:block}
+.zmedia .ph .shoe{width:40%}
+.zfoot{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 16px}
+.zid{display:inline-flex;align-items:baseline;gap:6px}
+.zn{font:800 52px/1 var(--f-display)}
+.zcat{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.zsizes{display:flex;align-items:baseline;gap:10px;margin:0 16px;padding:12px 0 16px;border-top:1px solid var(--line)}
+.zs{font:800 34px/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--accent-ink)}
+.zclose{position:absolute;top:10px;right:10px;width:40px;height:40px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;display:grid;place-items:center}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="bar">
+  <div class="gut">
+    <div class="bar-top">
+      <a class="brand" href="#" aria-label="Início"><img id="logo" src="logo.png" alt=""><span id="loja"></span></a>
+      <label class="search">
+        <span class="sr">Buscar pelo número do tênis</span>
+        <input id="busca" type="search" inputmode="numeric" enterkeyhint="search" autocomplete="off" placeholder="Buscar nº">
+      </label>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Categorias"></nav>
+    <nav class="marcas" id="marcas" aria-label="Marcas" hidden></nav>
+  </div>
+</div>
+
+<header class="hero gut">
+  <h1 id="titulo" data-estilo="original">Catálogo de tênis</h1>
+  <p>Cada tênis tem um número. Escolha a categoria, toque na foto para ampliar e peça pelo número.</p>
+</header>
+
+<main class="gut" id="catalogo"></main>
+<p class="vazio gut" id="vazio" hidden></p>
+
+<div class="zoom" id="zoom" role="dialog" aria-modal="true" aria-label="Foto ampliada" hidden>
+  <div class="zbox">
+    <button type="button" class="zclose" id="zfechar" aria-label="Fechar">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l12 12M15 3L3 15"/></svg>
+    </button>
+    <div class="zmedia" id="zmedia"></div>
+    <div class="zfoot">
+      <span class="zid"><span class="no">Nº</span><span class="zn" id="zn"></span></span>
+      <span class="zcat" id="zcat"></span>
+    </div>
+    <div class="zsizes" id="zsizes" hidden>
+      <span class="no">Numeração</span>
+      <span class="zs" id="zs"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — é só aqui que você mexe.
+
+   1) LOJA: nome escrito ao lado da logo no topo. Deixe "" para mostrar
+      só a logo. A logo é o arquivo logo.png (PNG com fundo transparente);
+      para trocar, substitua esse arquivo mantendo o nome.
+   2) CATEGORIAS: "quantidade" é quantos tênis existem na categoria e
+      "inicio" é o primeiro número dela. Os números NÃO se repetem entre
+      categorias. (Se você apagar o "inicio", a numeração continua
+      sozinha de uma categoria para a outra.)
+   3) FOTOS: coloque cada foto na pasta da categoria, com o número
+      do tênis como nome. Exemplos: fotos/masculino/07.jpg
+      e fotos/feminino/101.jpg
+      (aceita .jpg, .jpeg, .png e .webp)
+   4) MOSTRAR_SEM_FOTO: true  = mostra o número mesmo sem foto
+                        false = esconde os tênis que ainda não têm foto
+   5) NUMERAÇÃO: aparece quando a foto é ampliada.
+      - "numeracao" em cada categoria vale para todos os tênis dela.
+      - Para um tênis com numeração diferente, use NUMERACAO_DO_TENIS
+        (exemplo logo abaixo). Deixe "" para não mostrar nada.
+   6) MARCAS: escreva o nome de cada marca na lista MARCAS. Para cada
+      uma, crie uma subpasta com o nome em minúsculas dentro da categoria
+      e coloque as fotos lá, com o número do tênis como nome:
+        fotos/feminino/nike/101.jpg
+        fotos/masculino/new-balance/03.jpg   (espaço vira "-")
+      O filtro de marcas aparece sozinho, só com as marcas que têm foto.
+      Fotos soltas direto na pasta da categoria (fotos/feminino/102.jpg)
+      continuam funcionando e ficam "Sem marca".
+   ============================================================ */
+const LOJA = "";
+/* TÍTULO grande da página e o estilo dele. Estilos disponíveis:
+     "original"     letras altas e condensadas, em maiúsculas (o primeiro estilo)
+     "moderno"      letras de imprensa em negrito, maiúsculas e espaçadas
+     "minimalista"  pequeno, maiúsculas bem espaçadas (discreto)
+     "caligrafico"  letra manuscrita, no estilo da logo */
+const TITULO = "";   // deixe "" para não mostrar título. Para voltar: "Catálogo de tênis"
+const ESTILO_TITULO = "original";
+const MOSTRAR_SEM_FOTO = true;
+const MARCAS = ["Nike", "Adidas", "Puma", "Olympikus", "Mizuno", "Vans"];
+const CATEGORIAS = [
+  { pasta: "masculino", titulo: "Masculino", inicio: 1,   quantidade: 34, numeracao: "38-43" },
+  { pasta: "feminino",  titulo: "Feminino",  inicio: 101, quantidade: 54, numeracao: "34-39" },
+  //{ pasta: "unissex",   titulo: "Unissex",   inicio: 201, quantidade: 8,  numeracao: "35-44" },
+  { pasta: "infantil",  titulo: "Infantil",  inicio: 301, quantidade: 27,  numeracao: "26-33" }
+];
+/* Do jeito que está: Masculino 1 a 12, Feminino 101 a 112,
+   Unissex 201 a 208, Infantil 301 a 308. Cada categoria comporta
+   até 100 tênis sem invadir os números da próxima.
+   O nome da foto é o número do tênis (ex.: fotos/feminino/101.jpg).
+
+   Numeração de um tênis específico (troca a da categoria).
+   Formato:  "número do tênis": "numeração"
+   Exemplo (tire as barras // da frente para ativar):
+     "7": "40-45",
+     "103": "35-37",
+*/
+const NUMERACAO_DO_TENIS = {
+  // "7": "40-45",
+  // "103": "35-37",
+};
+/* ===================== fim da configuração ================== */
+
+const EXTENSOES = ["jpg", "jpeg", "png", "webp"];
+const SHOE = '<svg class="shoe" viewBox="0 0 120 66" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 52V40c0-4 3-6 7-6h14c6 0 9-8 13-14l6 4c4 6 11 9 19 10l18 4c9 2 16 8 16 14H8z"/><rect x="6" y="52" width="98" height="7" rx="3.5"/><path d="M54 27l-3 5M62 31l-3 5"/></svg>';
+
+const $ = (s, el = document) => el.querySelector(s);
+const pad = n => String(n).padStart(2, "0");
+
+const secoes = [];
+let filtro = "todos";
+let busca = "";
+let filtroMarca = "todas";   // "todas", "__sem" ou o nome de uma marca
+let ultimoFoco = null;
+
+$("#loja").textContent = LOJA;
+(function () {
+  const h = $("#titulo");
+  h.dataset.estilo = ESTILO_TITULO;
+  h.textContent = TITULO;
+  h.hidden = !TITULO;
+  h.parentNode.classList.toggle("sem-titulo", !TITULO);
+})();
+$("#logo").alt = LOJA || "Logo da loja";
+/* Se a logo.png não for encontrada, mostra o nome da loja no lugar */
+$("#logo").addEventListener("error", e => { e.target.hidden = true; if (!LOJA) $("#loja").textContent = "Catálogo"; });
+
+/* "New Balance" -> "new-balance" (nome da subpasta) */
+const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+/* Pastas onde procurar: uma por marca, e por último a pasta da categoria (sem marca) */
+const LOCAIS = MARCAS.map(m => ({ marca: m, dir: slug(m) })).concat([{ marca: null, dir: "" }]);
+
+/* Carrega a foto procurando em cada marca e em cada extensão até achar */
+function carregar(card, k) {
+  if (k >= LOCAIS.length * EXTENSOES.length) { refresh(); return; }
+  const loc = LOCAIS[Math.floor(k / EXTENSOES.length)];
+  const ext = EXTENSOES[k % EXTENSOES.length];
+  const url = "fotos/" + card.cfg.pasta + "/" + (loc.dir ? loc.dir + "/" : "") + card.nn + "." + ext;
+  const img = new Image();
+  img.onload = () => {
+    card.src = url;
+    card.marca = loc.marca;
+    img.alt = "Tênis " + (loc.marca ? loc.marca + " " : "") + card.cfg.titulo.toLowerCase() + " número " + card.n;
+    img.decoding = "async";
+    const tile = card.btn.querySelector(".tile");
+    tile.querySelector(".ph").hidden = true;
+    tile.prepend(img);
+    if (loc.marca) card.btn.querySelector(".hint").textContent = loc.marca;
+    refresh();
+  };
+  img.onerror = () => carregar(card, k + 1);
+  img.src = url;
+}
+
+function criarCard(cfg, n) {
+  const nn = pad(n);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "card";
+  btn.setAttribute("aria-label", "Tênis número " + n + ", " + cfg.titulo);
+  btn.innerHTML =
+    '<span class="tile"><span class="ph">' + SHOE + '<small></small></span></span>' +
+    '<span class="meta"><span class="id"><span class="no">Nº</span><span class="n"></span></span><span class="hint">Ampliar</span></span>';
+  btn.querySelector(".ph small").textContent = "fotos/" + cfg.pasta + "/" + (MARCAS.length ? "marca/" : "") + nn + ".jpg";
+  btn.querySelector(".n").textContent = nn;
+  const card = { n, nn, cfg, btn, src: null, marca: null };
+  btn.addEventListener("click", () => abrir(card));
+  return card;
+}
+
+/* Monta as seções */
+const main = $("#catalogo");
+let proximo = 1;
+for (const cfg of CATEGORIAS) {
+  const el = document.createElement("section");
+  el.className = "secao";
+  el.id = cfg.pasta;
+  el.innerHTML = '<div class="secao-head"><h2></h2><span class="count"></span></div><div class="grid"></div>';
+  el.querySelector("h2").textContent = cfg.titulo;
+  const grid = el.querySelector(".grid");
+  const cards = [];
+  const inicio = cfg.inicio !== undefined ? cfg.inicio : proximo;
+  proximo = inicio + cfg.quantidade;
+  for (let n = inicio; n < proximo; n++) {
+    const c = criarCard(cfg, n);
+    cards.push(c);
+    grid.append(c.btn);
+  }
+  main.append(el);
+  secoes.push({ cfg, el, cards, cont: el.querySelector(".count"), vis: 0 });
+}
+
+/* Monta as abas */
+const abas = [];
+function criarAba(id, rotulo) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "tab";
+  b.innerHTML = '<span class="lb"></span><span class="ct"></span>';
+  b.querySelector(".lb").textContent = rotulo;
+  b.addEventListener("click", () => {
+    filtro = id;
+    refresh();
+    const alvo = Math.max(0, main.getBoundingClientRect().top + window.scrollY - $(".bar").offsetHeight - 8);
+    if (window.scrollY > alvo) window.scrollTo({ top: alvo });
+  });
+  $("#tabs").append(b);
+  abas.push({ id, b, ct: b.querySelector(".ct") });
+}
+criarAba("todos", "Todos");
+for (const s of secoes) criarAba(s.cfg.pasta, s.cfg.titulo);
+
+/* Aplica filtros, busca e contagens */
+function refresh() {
+  const q = busca.replace(/\D/g, "").replace(/^0+/, "");
+  let totalVisivel = 0;
+  let totalGeral = 0;
+  const contMarca = {};   // quantos tênis com foto por marca, na categoria escolhida
+  let contSem = 0, contTodas = 0;
+  for (const s of secoes) {
+    let vis = 0;
+    const naCategoria = filtro === "todos" || filtro === s.cfg.pasta;
+    for (const c of s.cards) {
+      const base = (MOSTRAR_SEM_FOTO || c.src) && (!q || String(c.n).startsWith(q));
+      const marcaOk = filtroMarca === "todas" ||
+        (filtroMarca === "__sem" ? (c.src && !c.marca) : c.marca === filtroMarca);
+      const ok = base && marcaOk;
+      c.btn.hidden = !ok;
+      if (ok) vis++;
+      if (base && naCategoria) {
+        contTodas++;
+        if (c.src && c.marca) contMarca[c.marca] = (contMarca[c.marca] || 0) + 1;
+        else if (c.src) contSem++;
+      }
+    }
+    s.vis = vis;
+    totalGeral += vis;
+    const mostrar = vis > 0 && naCategoria;
+    s.el.hidden = !mostrar;
+    if (mostrar) totalVisivel += vis;
+    s.cont.textContent = vis + (vis === 1 ? " modelo" : " modelos");
+  }
+  for (const a of abas) {
+    const s = secoes.find(x => x.cfg.pasta === a.id);
+    a.ct.textContent = s ? s.vis : totalGeral;
+    a.b.setAttribute("aria-pressed", String(a.id === filtro));
+  }
+  desenharMarcas(contMarca, contSem, contTodas);
+  const vazio = $("#vazio");
+  vazio.hidden = totalVisivel > 0;
+  if (totalVisivel === 0) {
+    vazio.textContent = q ? "Nenhum tênis com o número " + q + "." :
+      filtroMarca !== "todas" ? "Nenhum tênis dessa marca nesta categoria." :
+      "Nenhum tênis com foto nesta categoria ainda.";
+  }
+}
+
+/* Filtro de marcas: só aparece se existir alguma foto dentro de uma pasta de marca */
+const barraMarcas = $("#marcas");
+function desenharMarcas(contMarca, contSem, contTodas) {
+  const temMarca = Object.keys(contMarca).length > 0 || filtroMarca !== "todas";
+  barraMarcas.hidden = !temMarca;
+  if (!temMarca) return;
+  const itens = [{ id: "todas", rotulo: "Todas", n: contTodas }];
+  for (const m of MARCAS) if (contMarca[m] || filtroMarca === m) itens.push({ id: m, rotulo: m, n: contMarca[m] || 0 });
+  if (contSem && Object.keys(contMarca).length || filtroMarca === "__sem") itens.push({ id: "__sem", rotulo: "Sem marca", n: contSem });
+  barraMarcas.replaceChildren();
+  const lb = document.createElement("span");
+  lb.className = "mlabel"; lb.textContent = "Marca";
+  barraMarcas.append(lb);
+  for (const it of itens) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip";
+    b.setAttribute("aria-pressed", String(it.id === filtroMarca));
+    b.innerHTML = '<span class="lb"></span><span class="ct"></span>';
+    b.querySelector(".lb").textContent = it.rotulo;
+    b.querySelector(".ct").textContent = it.n;
+    b.addEventListener("click", () => { filtroMarca = it.id; refresh(); });
+    barraMarcas.append(b);
+  }
+}
+
+$("#busca").addEventListener("input", e => { busca = e.target.value; refresh(); });
+
+/* Foto ampliada */
+const zoom = $("#zoom");
+function abrir(card) {
+  ultimoFoco = card.btn;
+  $("#zn").textContent = card.nn;
+  $("#zcat").textContent = card.cfg.titulo + (card.marca ? " · " + card.marca : "");
+  const media = $("#zmedia");
+  media.replaceChildren();
+  if (card.src) {
+    const img = new Image();
+    img.src = card.src;
+    img.alt = "Tênis " + card.cfg.titulo.toLowerCase() + " número " + card.n;
+    media.append(img);
+  } else {
+    media.innerHTML = '<span class="ph">' + SHOE + '<small></small></span>';
+    media.querySelector("small").textContent = "Foto ainda não adicionada";
+  }
+  const tam = NUMERACAO_DO_TENIS[card.n] ||
+              NUMERACAO_DO_TENIS[card.nn] ||
+              card.cfg.numeracao || "";
+  $("#zs").textContent = tam;
+  $("#zsizes").hidden = !tam;
+  zoom.hidden = false;
+  document.documentElement.style.overflow = "hidden";
+  $("#zfechar").focus();
+}
+function fechar() {
+  zoom.hidden = true;
+  document.documentElement.style.overflow = "";
+  if (ultimoFoco) ultimoFoco.focus();
+}
+$("#zfechar").addEventListener("click", fechar);
+zoom.addEventListener("click", e => { if (e.target === zoom) fechar(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !zoom.hidden) fechar(); });
+
+refresh();
+for (const s of secoes) for (const c of s.cards) carregar(c, 0);
+</script>
+
+</body>
+</html>
