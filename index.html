@@ -176,22 +176,22 @@ button{font:inherit}
       sozinha de uma categoria para a outra.)
    3) FOTOS: coloque cada foto na pasta da categoria, com o número
       do tênis como nome. Exemplos: fotos/masculino/07.jpg
-      e fotos/feminino/101.jpg
-      (aceita .jpg, .jpeg, .png e .webp)
+      e fotos/feminino/new-balance/101.jpg
+      Depois, avise o site quais fotos existem na lista FOTOS (mais abaixo).
+      O jeito mais fácil: abra o arquivo gerar-lista.html, escolha a pasta
+      "fotos" e copie o resultado para dentro de FOTOS.
+      O site só pede ao servidor as fotos que estão na lista. Por isso a
+      página abre rápido e não toma bloqueio do GitHub Pages.
    4) MOSTRAR_SEM_FOTO: true  = mostra o número mesmo sem foto
                         false = esconde os tênis que ainda não têm foto
    5) NUMERAÇÃO: aparece quando a foto é ampliada.
       - "numeracao" em cada categoria vale para todos os tênis dela.
       - Para um tênis com numeração diferente, use NUMERACAO_DO_TENIS
         (exemplo logo abaixo). Deixe "" para não mostrar nada.
-   6) MARCAS: escreva o nome de cada marca na lista MARCAS. Para cada
-      uma, crie uma subpasta com o nome em minúsculas dentro da categoria
-      e coloque as fotos lá, com o número do tênis como nome:
-        fotos/feminino/nike/101.jpg
-        fotos/masculino/new-balance/03.jpg   (espaço vira "-")
-      O filtro de marcas aparece sozinho, só com as marcas que têm foto.
-      Fotos soltas direto na pasta da categoria (fotos/feminino/102.jpg)
-      continuam funcionando e ficam "Sem marca".
+   6) MARCAS: a marca é a subpasta onde a foto está, em minúsculas, com
+      hífen no lugar do espaço: fotos/feminino/new-balance/101.jpg
+      O filtro de marcas aparece sozinho. Fotos soltas direto na pasta da
+      categoria ficam "Sem marca".
    ============================================================ */
 const LOJA = "";
 /* TÍTULO grande da página e o estilo dele. Estilos disponíveis:
@@ -202,7 +202,6 @@ const LOJA = "";
 const TITULO = "";   // deixe "" para não mostrar título. Para voltar: "Catálogo de tênis"
 const ESTILO_TITULO = "original";
 const MOSTRAR_SEM_FOTO = true;
-const MARCAS = ["Nike", "Adidas", "Puma", "Olympikus", "Mizuno", "Vans", "New Balance", "Cat"];
 const CATEGORIAS = [
   { pasta: "masculino", titulo: "Masculino", inicio: 1,   quantidade: 51, numeracao: "38-43" },
   { pasta: "feminino",  titulo: "Feminino",  inicio: 101, quantidade: 93, numeracao: "34-39" },
@@ -224,9 +223,40 @@ const NUMERACAO_DO_TENIS = {
   // "7": "40-45",
   // "103": "35-37",
 };
+
+/* FOTOS: quais fotos existem, por categoria e por marca.
+   Cada marca recebe os números dos tênis que têm foto nela.
+   Escreva números soltos e intervalos: "1-5, 7, 9-12".
+   Para foto que não é .jpg, escreva a extensão: "8.png" ou "10-12.webp".
+   Use "" (aspas vazias) para fotos sem marca, direto na pasta da categoria.
+   Dica: o arquivo gerar-lista.html monta tudo isso sozinho.
+
+   Exemplo (tire as barras // da frente e ajuste):
+     masculino: { "Nike": "1-5, 7", "Adidas": "6, 8-12" },
+     feminino:  { "New Balance": "101-106", "": "107-112" },
+*/
+const FOTOS = {
+  masculino: {
+    "Mizuno": "35-51.jpeg",
+    "Nike": "1-27.jpeg",
+    "Puma": "28-34.jpeg"
+  },
+  feminino: {
+    "Adidas": "157-194.jpeg",
+    "Nike": "101-139.jpeg",
+    "Puma": "140-156.jpeg"
+  },
+  unissex: { },
+  infantil: {
+    "Adidas": "301-303.jpeg, 344-346.jpeg, 350-351.jpeg, 354.jpeg, 368-369.jpeg",
+    "Cat": "370-372.jpeg",
+    "Mizuno": "340-342.jpeg, 347.jpeg",
+    "New Balance": "352-353.jpeg, 355-367.jpeg",
+    "Nike": "304-339.jpeg, 343.jpeg, 348-349.jpeg, 373.jpeg"
+  }
+};
 /* ===================== fim da configuração ================== */
 
-const EXTENSOES = ["jpg", "jpeg", "png", "webp"];
 const SHOE = '<svg class="shoe" viewBox="0 0 120 66" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 52V40c0-4 3-6 7-6h14c6 0 9-8 13-14l6 4c4 6 11 9 19 10l18 4c9 2 16 8 16 14H8z"/><rect x="6" y="52" width="98" height="7" rx="3.5"/><path d="M54 27l-3 5M62 31l-3 5"/></svg>';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -253,29 +283,52 @@ $("#logo").addEventListener("error", e => { e.target.hidden = true; if (!LOJA) $
 /* "New Balance" -> "new-balance" (nome da subpasta) */
 const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
-/* Pastas onde procurar: uma por marca, e por último a pasta da categoria (sem marca) */
-const LOCAIS = MARCAS.map(m => ({ marca: m, dir: slug(m) })).concat([{ marca: null, dir: "" }]);
+/* Lê "1-5, 7, 9-12" ou "8.png, 10-12.webp" e devolve [{n, ext}] */
+function lerLista(txt) {
+  const out = [];
+  for (const parte of String(txt || "").split(/[,;\s]+/)) {
+    const m = parte.match(/^(\d+)(?:-(\d+))?(?:\.(jpe?g|png|webp))?$/i);
+    if (!m) continue;
+    const de = +m[1], ate = m[2] ? +m[2] : de, ext = (m[3] || "jpg").toLowerCase();
+    for (let n = de; n <= ate && n - de < 1000; n++) out.push({ n, ext });
+  }
+  return out;
+}
 
-/* Carrega a foto procurando em cada marca e em cada extensão até achar */
-function carregar(card, k) {
-  if (k >= LOCAIS.length * EXTENSOES.length) { refresh(); return; }
-  const loc = LOCAIS[Math.floor(k / EXTENSOES.length)];
-  const ext = EXTENSOES[k % EXTENSOES.length];
-  const url = "fotos/" + card.cfg.pasta + "/" + (loc.dir ? loc.dir + "/" : "") + card.nn + "." + ext;
+/* Índice: categoria -> número -> { marca, ext }.  Marcas na ordem em que aparecem. */
+const INDICE = {};
+const MARCAS = [];
+for (const [pasta, marcas] of Object.entries(FOTOS)) {
+  INDICE[pasta] = {};
+  for (const [marca, lista] of Object.entries(marcas)) {
+    if (marca && !MARCAS.includes(marca)) MARCAS.push(marca);
+    for (const { n, ext } of lerLista(lista)) INDICE[pasta][n] = { marca: marca || null, ext };
+  }
+}
+
+/* Coloca a foto no cartão: um único pedido por foto, e só quando ela aparece na tela */
+function aplicarFoto(card) {
+  const f = (INDICE[card.cfg.pasta] || {})[card.n];
+  if (!f) return;
+  const url = "fotos/" + card.cfg.pasta + "/" + (f.marca ? slug(f.marca) + "/" : "") + card.nn + "." + f.ext;
+  card.src = url;
+  card.marca = f.marca;
+  const tile = card.btn.querySelector(".tile");
+  const ph = tile.querySelector(".ph");
   const img = new Image();
-  img.onload = () => {
-    card.src = url;
-    card.marca = loc.marca;
-    img.alt = "Tênis " + (loc.marca ? loc.marca + " " : "") + card.cfg.titulo.toLowerCase() + " número " + card.n;
-    img.decoding = "async";
-    const tile = card.btn.querySelector(".tile");
-    tile.querySelector(".ph").hidden = true;
-    tile.prepend(img);
-    if (loc.marca) card.btn.querySelector(".hint").textContent = loc.marca;
+  img.alt = "Tênis " + (f.marca ? f.marca + " " : "") + card.cfg.titulo.toLowerCase() + " número " + card.n;
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.addEventListener("error", () => {   // arquivo da lista não encontrado: volta ao espaço vazio
+    img.remove(); ph.hidden = false;
+    card.src = null; card.marca = null;
+    card.btn.querySelector(".hint").textContent = "Ampliar";
     refresh();
-  };
-  img.onerror = () => carregar(card, k + 1);
+  });
   img.src = url;
+  tile.prepend(img);
+  ph.hidden = true;
+  if (f.marca) card.btn.querySelector(".hint").textContent = f.marca;
 }
 
 function criarCard(cfg, n) {
@@ -443,8 +496,8 @@ $("#zfechar").addEventListener("click", fechar);
 zoom.addEventListener("click", e => { if (e.target === zoom) fechar(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !zoom.hidden) fechar(); });
 
+for (const s of secoes) for (const c of s.cards) aplicarFoto(c);
 refresh();
-for (const s of secoes) for (const c of s.cards) carregar(c, 0);
 </script>
 
 </body>

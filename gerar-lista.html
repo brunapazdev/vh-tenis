@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerar lista de fotos · VHTenis</title>
+<style>
+:root{--bg:#F6F9FC;--ink:#1E2125;--muted:#4F5A64;--line:#DAE3EC;--accent:#8CCBF7;--deep:#1F7BBF}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.5 Manrope,system-ui,sans-serif;padding:24px 16px 60px}
+main{max-width:720px;margin:0 auto}
+h1{font:900 34px "Big Shoulders Display","Arial Narrow",Impact,sans-serif;text-transform:uppercase;margin:0 0 6px}
+p{color:var(--muted);margin:0 0 16px}
+ol{color:var(--muted);padding-left:20px}
+button{font:inherit;font-weight:800;background:var(--accent);color:#1B2430;border:0;border-radius:12px;padding:14px 22px;cursor:pointer}
+input[type=file]{display:none}
+pre{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;font-size:14px;white-space:pre}
+.aviso{background:#fff;border-left:4px solid var(--deep);padding:10px 14px;border-radius:8px;margin:12px 0;color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+</style>
+</head>
+<body>
+<main>
+<h1>Gerar lista de fotos</h1>
+<p>Lê a sua pasta <b>fotos</b> e monta o bloco que você cola no <b>index.html</b>. Nada é enviado para a internet.</p>
+<ol>
+<li>Clique em “Escolher pasta fotos” e selecione a pasta <b>fotos</b> inteira (a que tem masculino, feminino…).</li>
+<li>Copie o resultado.</li>
+<li>No <b>index.html</b>, apague o bloco <code>const FOTOS = { ... };</code> e cole este no lugar.</li>
+<li>Suba o index.html e a pasta fotos para o GitHub.</li>
+</ol>
+<div class="row">
+<button id="esc">Escolher pasta fotos</button>
+<button id="cop" hidden>Copiar</button>
+</div>
+<input id="f" type="file" webkitdirectory multiple>
+<div id="av"></div>
+<pre id="out" hidden></pre>
+</main>
+<script>
+const CATS = ["masculino","feminino","unissex","infantil"];
+const slug = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+const f = document.getElementById("f"), out = document.getElementById("out"), av = document.getElementById("av"), cop = document.getElementById("cop");
+document.getElementById("esc").onclick = () => f.click();
+
+function faixas(lista) {            // [{n,ext}] -> "1-5, 7, 8.png"
+  lista.sort((a,b)=>a.n-b.n);
+  const partes = []; let i = 0;
+  while (i < lista.length) {
+    let j = i;
+    while (j+1 < lista.length && lista[j+1].n === lista[j].n+1 && lista[j+1].ext === lista[i].ext) j++;
+    const ext = lista[i].ext === "jpg" ? "" : "." + lista[i].ext;
+    partes.push(i === j ? lista[i].n + ext : lista[i].n + "-" + lista[j].n + ext);
+    i = j+1;
+  }
+  return partes.join(", ");
+}
+
+f.onchange = () => {
+  const dados = {}, avisos = []; CATS.forEach(c => dados[c] = {});
+  const nomesMarca = {};            // slug -> nome bonito
+  for (const file of f.files) {
+    const p = file.webkitRelativePath.split("/").slice(1);   // tira "fotos"
+    if (p.length < 2) continue;
+    const cat = p[0].toLowerCase();
+    if (!CATS.includes(cat)) { avisos.push("Pasta ignorada: " + p[0]); continue; }
+    const marcaDir = p.length === 3 ? p[1] : "";
+    if (p.length > 3) { avisos.push("Muito fundo, ignorado: " + p.join("/")); continue; }
+    const m = p[p.length-1].match(/^(\d+)\.(jpe?g|png|webp)$/i);
+    if (!m) { if (!/^\./.test(p[p.length-1])) avisos.push("Nome fora do padrão (use 12.jpg): " + p.join("/")); continue; }
+    const marca = marcaDir ? marcaDir : "";
+    if (marca && slug(marca) !== marca) avisos.push("Pasta de marca deve ser minúscula e com hífen: " + marca + " → " + slug(marca));
+    const ext = m[2].toLowerCase();
+    (dados[cat][marca] = dados[cat][marca] || []).push({ n: +m[1], ext, orig: m[2] });
+  }
+  const bonito = s => s.split("-").map(w => w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+  let txt = "const FOTOS = {\n";
+  CATS.forEach((c, k) => {
+    const linhas = Object.keys(dados[c]).sort((a,b)=>a===""?1:b===""?-1:a.localeCompare(b))
+      .map(m => '    "' + (m ? bonito(m) : "") + '": "' + faixas(dados[c][m]) + '"');
+    txt += "  " + c + ": " + (linhas.length ? "{\n" + linhas.join(",\n") + "\n  }" : "{ }") + (k < CATS.length-1 ? "," : "") + "\n";
+  });
+  txt += "};";
+  av.innerHTML = avisos.slice(0,12).map(a => '<div class="aviso">' + a.replace(/</g,"&lt;") + '</div>').join("") +
+    (avisos.length > 12 ? '<div class="aviso">…e mais ' + (avisos.length-12) + ' avisos.</div>' : "");
+  out.textContent = txt; out.hidden = false; cop.hidden = false;
+};
+cop.onclick = async () => {
+  try { await navigator.clipboard.writeText(out.textContent); cop.textContent = "Copiado ✓"; }
+  catch { const r = document.createRange(); r.selectNode(out); getSelection().removeAllRanges(); getSelection().addRange(r); cop.textContent = "Selecionado, é só copiar"; }
+};
+</script>
+</body>
+</html>
